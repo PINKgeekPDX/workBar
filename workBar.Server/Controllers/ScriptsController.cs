@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using workBar.Server.Models;
 using workBar.Server.Services;
 
 namespace workBar.Server.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class ScriptsController : ControllerBase
     {
         private readonly IScriptService _scriptService;
@@ -16,17 +15,20 @@ namespace workBar.Server.Controllers
         }
 
         [HttpPost("execute")]
-        public IActionResult ExecuteScript([FromBody] ScriptConfig config)
+        public async Task<IActionResult> ExecuteScript([FromBody] ScriptExecutionRequest request)
         {
             try
             {
-                _scriptService.ExecuteScript(config);
-                return Ok(new { message = "Script executed successfully." });
+                var result = await _scriptService.ExecuteScript(
+                    request.ScriptPath,
+                    request.Interpreter,
+                    request.Arguments ?? Array.Empty<string>()
+                );
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                // Log the error
-                return StatusCode(500, new { error = ex.Message });
+                return BadRequest(ex.Message);
             }
         }
     }

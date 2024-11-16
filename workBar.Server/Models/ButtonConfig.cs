@@ -2,10 +2,9 @@
 {
     public class ButtonConfig
     {
-        public string Id { get; set; }
-        public string Icon { get; set; }
-        public bool Customizable { get; set; }
-        public string ActionType { get; set; }
-        public object ActionConfig { get; set; }
+        public required string Id { get; set; }
+        public required string Icon { get; set; }
+        public required string ActionType { get; set; }
+        public required ActionConfig ActionConfig { get; set; }
     }
 }

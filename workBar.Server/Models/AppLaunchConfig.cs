@@ -2,8 +2,7 @@
 {
     public class AppLaunchConfig
     {
-        public string Path { get; set; }
-        public string Arguments { get; set; }
-        public bool RunAsAdmin { get; set; }
+        public required string Path { get; set; }
+        public required string[] Arguments { get; set; }
     }
 }

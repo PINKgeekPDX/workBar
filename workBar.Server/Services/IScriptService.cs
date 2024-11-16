@@ -1,9 +1,7 @@
-﻿using workBar.Server.Models;
-
-namespace workBar.Server.Services
+﻿namespace workBar.Server.Services
 {
     public interface IScriptService
     {
-        void ExecuteScript(ScriptConfig config);
+        Task<string> ExecuteScript(string scriptPath, string interpreter, string[] arguments);
     }
 }
