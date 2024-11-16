@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35506.116 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "workBar.Server", "workBar.Server\workBar.Server.csproj", "{CDBC1CEB-2B13-4BBE-B50F-206C29E41583}"
+EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "workbar.client", "workbar.client\workbar.client.esproj", "{DCC81323-33F6-424E-8EE2-5B3514305E36}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CDBC1CEB-2B13-4BBE-B50F-206C29E41583}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDBC1CEB-2B13-4BBE-B50F-206C29E41583}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDBC1CEB-2B13-4BBE-B50F-206C29E41583}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDBC1CEB-2B13-4BBE-B50F-206C29E41583}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCC81323-33F6-424E-8EE2-5B3514305E36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCC81323-33F6-424E-8EE2-5B3514305E36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCC81323-33F6-424E-8EE2-5B3514305E36}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{DCC81323-33F6-424E-8EE2-5B3514305E36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCC81323-33F6-424E-8EE2-5B3514305E36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCC81323-33F6-424E-8EE2-5B3514305E36}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
