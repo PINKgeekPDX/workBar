@@ -1,1 +1,3 @@
-console.log("Hello World!")
+module.exports = {
+  presets: ['@vue/cli-plugin-babel/preset'],
+};

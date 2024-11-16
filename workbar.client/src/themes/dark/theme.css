@@ -1,0 +1,19 @@
+/* src/themes/dark/theme.css */
+body {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.toolbar {
+    background: rgba(50, 50, 50, 0.8);
+}
+
+.button {
+    color: #ffffff;
+}
+
+    .button:hover {
+        background: rgba(70, 70, 70, 0.8);
+    }
+
+/* Add more theme-specific styles */

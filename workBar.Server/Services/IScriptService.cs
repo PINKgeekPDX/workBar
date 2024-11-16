@@ -1,6 +1,9 @@
-﻿namespace workBar.Server.Services
+﻿using workBar.Server.Models;
+
+namespace workBar.Server.Services
 {
-    public class IScriptService
+    public interface IScriptService
     {
+        void ExecuteScript(ScriptConfig config);
     }
 }

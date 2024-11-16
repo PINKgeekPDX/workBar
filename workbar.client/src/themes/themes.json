@@ -1,0 +1,13 @@
+[
+  {
+    "name": "default",
+    "displayName": "Default Theme",
+    "preview": "/themes/default/preview.png"
+  },
+  {
+    "name": "dark",
+    "displayName": "Dark Theme",
+    "preview": "/themes/dark/preview.png"
+  }
+  // Add more themes as needed
+]

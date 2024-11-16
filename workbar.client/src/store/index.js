@@ -1,1 +1,5 @@
-console.log("Hello World!")
+import { createPinia } from 'pinia';
+
+const pinia = createPinia();
+
+export default pinia;

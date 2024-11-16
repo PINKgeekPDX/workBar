@@ -1,338 +1,297 @@
 <template>
-  <div class="toolbar"
-       :class="{ vertical: isVertical, expanded: isExpanded }"
-       :style="{ left: toolbarLeft + 'px', top: toolbarTop + 'px' }"
-       @mousedown="startDragging">
-    <!-- Edge indicators -->
-    <div class="edge-indicator top" :class="{ active: isEdgeIndicatorActive.top }"></div>
-    <div class="edge-indicator left" :class="{ active: isEdgeIndicatorActive.left }"></div>
-    <div class="edge-indicator right" :class="{ active: isEdgeIndicatorActive.right }"></div>
-
+  <div ref="toolbar"
+       :class="['toolbar', { vertical: isVertical, expanded: isExpanded, pinned: isPinned }]"
+       :style="toolbarStyle"
+       @mousedown="startDrag">
     <div class="buttons-container">
+      <!-- Main Buttons -->
       <div class="main-buttons">
-        <button v-for="button in mainButtons"
+        <button v-for="(button, index) in visibleButtons"
                 :key="button.id"
                 class="button customizable"
-                :class="{ active: button.active }"
-                :data-button-id="button.id"
-                :data-icon="button.icon"
-                v-html="button.icon"
-                @click="handleButtonClick(button.id)"></button>
+                @click="executeAction(button)">
+          {{ button.icon }}
+        </button>
       </div>
-      <div class="separator"></div>
-      <button class="button pin"
-              :class="{ active: isPinned }"
-              @click="togglePin"
-              v-html="isPinned ? '📍' : '📌'"></button>
-      <button class="button"
-              @click="toggleExpansion"
-              v-html="isVertical ? (isExpanded ? '◄' : '►') : (isExpanded ? '▲' : '▼')"></button>
-      <div class="expanded-section" v-show="isExpanded">
-        <button v-for="button in expandedButtons"
-                :key="button.id"
-                class="button customizable"
-                :class="{ active: button.active }"
-                :data-button-id="button.id"
-                :data-icon="button.icon"
-                v-html="button.icon"
-                @click="handleButtonClick(button.id)"></button>
+
+      <!-- Control Buttons -->
+      <div class="control-buttons">
+        <button class="button" @click="togglePin">{{ isPinned ? '📍' : '📌' }}</button>
+        <button class="button" @click="toggleExpand">{{ expandIcon }}</button>
         <button class="button" @click="openCustomizationModal">⚙️</button>
+        <button class="button" @click="openThemeSelector">🎨</button>
+        <button class="button" @click="openAboutDialog">ℹ️</button>
       </div>
     </div>
+
+    <!-- Modals -->
+    <CustomizationModal v-if="showCustomizationModal"
+                        :buttons="buttons"
+                        @close="closeCustomizationModal"
+                        @save="saveButtonConfigurations" />
+    <ThemeSelector v-if="showThemeSelector" @close="closeThemeSelector" />
+    <AboutDialog v-if="showAboutDialog" @close="closeAboutDialog" />
+  </div>
+
+  <!-- Notifications -->
+  <div class="notifications">
+    <Notification v-for="notification in notifications"
+                  :key="notification.id"
+                  :notification="notification" />
   </div>
 </template>
 
 <script>
+  import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+  import { useToolbarStore } from '@/store/toolbar';
+  import CustomizationModal from './CustomizationModal.vue';
+  import ThemeSelector from './ThemeSelector.vue';
+  import AboutDialog from './AboutDialog.vue';
+  import Notification from './Notification.vue';
+
   export default {
-    name: 'Toolbar',
-    data() {
-      return {
-        isPinned: false,
-        isExpanded: false,
-        isVertical: false,
-        toolbarLeft: 0,
-        toolbarTop: 0,
-        isDragging: false,
-        startX: 0,
-        startY: 0,
-        currentPosition: 'top',
-        EDGE_THRESHOLD: 80,
-        isEdgeIndicatorActive: {
-          top: false,
-          left: false,
-          right: false,
-        },
-        mainButtons: [
-          { id: 'btn1', icon: '🏠', active: false },
-          { id: 'btn2', icon: '🔍', active: false },
-          { id: 'btn3', icon: '📁', active: false },
-          { id: 'btn4', icon: '✏️', active: false },
-          { id: 'btn5', icon: '🗑️', active: false },
-          { id: 'btn6', icon: '🔧', active: false },
-          { id: 'btn7', icon: '📊', active: false },
-          { id: 'btn8', icon: '📈', active: false },
-          { id: 'btn9', icon: '📅', active: false },
-          { id: 'btn10', icon: '⚡', active: false },
-        ],
-        expandedButtons: [
-          { id: 'btn11', icon: '🔒', active: false },
-          { id: 'btn12', icon: '🛠️', active: false },
-          { id: 'btn13', icon: '🖥️', active: false },
-          { id: 'btn14', icon: '🔄', active: false },
-          { id: 'btn15', icon: '📦', active: false },
-          { id: 'btn16', icon: '📬', active: false },
-        ],
+    components: {
+      CustomizationModal,
+      ThemeSelector,
+      AboutDialog,
+      Notification,
+    },
+    setup() {
+      const toolbarStore = useToolbarStore();
+
+      const toolbar = ref(null);
+      const isDragging = ref(false);
+      const startX = ref(0);
+      const startY = ref(0);
+      const position = ref({ x: 0, y: 0 });
+      const activeEdge = ref('top');
+      const isPinned = ref(false);
+      const isExpanded = ref(false);
+      const showCustomizationModal = ref(false);
+      const showThemeSelector = ref(false);
+      const showAboutDialog = ref(false);
+
+      const buttons = ref(toolbarStore.buttons);
+      const notifications = computed(() => toolbarStore.notifications);
+
+      const visibleButtons = computed(() => {
+        return isExpanded.value ? buttons.value : buttons.value.slice(0, 10);
+      });
+
+      const isVertical = computed(() => ['left', 'right'].includes(activeEdge.value));
+      const expandIcon = computed(() => (isVertical.value ? (isExpanded.value ? '◄' : '►') : isExpanded.value ? '▲' : '▼'));
+
+      const toolbarStyle = computed(() => ({
+        left: `${position.value.x}px`,
+        top: `${position.value.y}px`,
+      }));
+
+      // Draggable functionality
+      const startDrag = (e) => {
+        if (isPinned.value || e.target.classList.contains('button')) return;
+
+        isDragging.value = true;
+        const rect = toolbar.value.getBoundingClientRect();
+        startX.value = e.clientX - rect.left;
+        startY.value = e.clientY - rect.top;
+
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', stopDrag);
       };
-    },
-    mounted() {
-      this.loadCustomIcons();
-      document.addEventListener('mousemove', this.handleDragging);
-      document.addEventListener('mouseup', this.stopDragging);
-    },
-    beforeDestroy() {
-      document.removeEventListener('mousemove', this.handleDragging);
-      document.removeEventListener('mouseup', this.stopDragging);
-    },
-    methods: {
-      loadCustomIcons() {
-        const customIcons = JSON.parse(localStorage.getItem('customToolbarIcons')) || {};
-        this.mainButtons.forEach(button => {
-          if (customIcons[button.id]) {
-            button.icon = customIcons[button.id];
-          }
-        });
-        this.expandedButtons.forEach(button => {
-          if (customIcons[button.id]) {
-            button.icon = customIcons[button.id];
-          }
-        });
-      },
-      handleButtonClick(buttonId) {
-        // Handle button click event
-        console.log(`Button ${buttonId} clicked`);
-      },
-      togglePin() {
-        this.isPinned = !this.isPinned;
-      },
-      toggleExpansion() {
-        this.isExpanded = !this.isExpanded;
-      },
-      openCustomizationModal() {
-        this.$emit('open-customization-modal');
-      },
-      startDragging(event) {
-        if (this.isPinned || event.target.classList.contains('button')) return;
-        this.isDragging = true;
-        this.startX = event.clientX - this.toolbarLeft;
-        this.startY = event.clientY - this.toolbarTop;
-        this.$el.style.transition = 'none';
-        document.body.classList.add('no-select');
-      },
-      handleDragging(event) {
-        if (!this.isDragging) return;
-        let newLeft = event.clientX - this.startX;
-        let newTop = event.clientY - this.startY;
-        const edge = this.getClosestEdge(newLeft, newTop);
-        this.updateEdgeIndicator(edge);
-        if (edge === 'top') {
-          newTop = 0;
-          newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - this.$el.offsetWidth));
-        } else if (edge === 'left') {
-          newLeft = 0;
-          newTop = Math.max(0, Math.min(newTop, window.innerHeight - this.$el.offsetHeight));
-        } else if (edge === 'right') {
-          newLeft = window.innerWidth - this.$el.offsetWidth;
-          newTop = Math.max(0, Math.min(newTop, window.innerHeight - this.$el.offsetHeight));
+
+      const handleDrag = (e) => {
+        if (!isDragging.value) return;
+
+        let x = e.clientX - startX.value;
+        let y = e.clientY - startY.value;
+
+        // Snap to edges
+        const edgeThreshold = 80;
+        const rect = toolbar.value.getBoundingClientRect();
+        if (y < edgeThreshold) activeEdge.value = 'top';
+        else if (x < edgeThreshold) activeEdge.value = 'left';
+        else if (window.innerWidth - x - rect.width < edgeThreshold) activeEdge.value = 'right';
+
+        updatePosition(x, y);
+      };
+
+      const stopDrag = () => {
+        isDragging.value = false;
+        document.removeEventListener('mousemove', handleDrag);
+        document.removeEventListener('mouseup', stopDrag);
+      };
+
+      const updatePosition = (x, y) => {
+        const rect = toolbar.value.getBoundingClientRect();
+        switch (activeEdge.value) {
+          case 'top':
+            position.value.x = Math.max(0, Math.min(x, window.innerWidth - rect.width));
+            position.value.y = 0;
+            break;
+          case 'left':
+            position.value.x = 0;
+            position.value.y = Math.max(0, Math.min(y, window.innerHeight - rect.height));
+            break;
+          case 'right':
+            position.value.x = window.innerWidth - rect.width;
+            position.value.y = Math.max(0, Math.min(y, window.innerHeight - rect.height));
+            break;
+          default:
+            break;
         }
-        this.toolbarLeft = newLeft;
-        this.toolbarTop = newTop;
-        this.updateToolbarOrientation(edge);
-      },
-      stopDragging() {
-        if (!this.isDragging) return;
-        this.isDragging = false;
-        this.$el.style.transition = 'all 0.3s ease';
-        this.hideEdgeIndicators();
-        document.body.classList.remove('no-select');
-      },
-      getClosestEdge(left, top) {
-        if (top < this.EDGE_THRESHOLD) return 'top';
-        if (left < this.EDGE_THRESHOLD) return 'left';
-        if (window.innerWidth - left - this.$el.offsetWidth < this.EDGE_THRESHOLD) return 'right';
-        return this.currentPosition;
-      },
-      updateEdgeIndicator(edge) {
-        this.isEdgeIndicatorActive.top = edge === 'top';
-        this.isEdgeIndicatorActive.left = edge === 'left';
-        this.isEdgeIndicatorActive.right = edge === 'right';
-      },
-      hideEdgeIndicators() {
-        this.isEdgeIndicatorActive.top = false;
-        this.isEdgeIndicatorActive.left = false;
-        this.isEdgeIndicatorActive.right = false;
-      },
-      updateToolbarOrientation(position) {
-        if (this.currentPosition === position) return;
-        this.currentPosition = position;
-        this.isVertical = position === 'left' || position === 'right';
-      },
+      };
+
+      // Button actions
+      const executeAction = (button) => {
+        toolbarStore.executeAction(button);
+      };
+
+      const togglePin = () => {
+        isPinned.value = !isPinned.value;
+      };
+
+      const toggleExpand = () => {
+        isExpanded.value = !isExpanded.value;
+      };
+
+      const openCustomizationModal = () => {
+        showCustomizationModal.value = true;
+      };
+
+      const closeCustomizationModal = () => {
+        showCustomizationModal.value = false;
+      };
+
+      const saveButtonConfigurations = (updatedButtons) => {
+        buttons.value = updatedButtons;
+        toolbarStore.updateButtons(updatedButtons);
+      };
+
+      const openThemeSelector = () => {
+        showThemeSelector.value = true;
+      };
+
+      const closeThemeSelector = () => {
+        showThemeSelector.value = false;
+      };
+
+      const openAboutDialog = () => {
+        showAboutDialog.value = true;
+      };
+
+      const closeAboutDialog = () => {
+        showAboutDialog.value = false;
+      };
+
+      // Auto-collapse functionality
+      let autoCollapseTimer = null;
+      const autoCollapseTime = 2 * 60 * 1000; // 2 minutes
+
+      const resetAutoCollapseTimer = () => {
+        clearTimeout(autoCollapseTimer);
+        if (!isPinned.value && isExpanded.value) {
+          autoCollapseTimer = setTimeout(() => {
+            isExpanded.value = false;
+          }, autoCollapseTime);
+        }
+      };
+
+      // Event listeners for user activity
+      const userActivityHandler = () => {
+        resetAutoCollapseTimer();
+      };
+
+      onMounted(() => {
+        document.addEventListener('mousemove', userActivityHandler);
+        document.addEventListener('mousedown', userActivityHandler);
+        resetAutoCollapseTimer();
+      });
+
+      onBeforeUnmount(() => {
+        document.removeEventListener('mousemove', userActivityHandler);
+        document.removeEventListener('mousedown', userActivityHandler);
+        clearTimeout(autoCollapseTimer);
+      });
+
+      return {
+        toolbar,
+        isPinned,
+        isExpanded,
+        startDrag,
+        isVertical,
+        expandIcon,
+        toolbarStyle,
+        visibleButtons,
+        executeAction,
+        togglePin,
+        toggleExpand,
+        openCustomizationModal,
+        closeCustomizationModal,
+        saveButtonConfigurations,
+        openThemeSelector,
+        closeThemeSelector,
+        openAboutDialog,
+        closeAboutDialog,
+        showCustomizationModal,
+        showThemeSelector,
+        showAboutDialog,
+        notifications,
+      };
     },
   };
 </script>
 
 <style scoped>
   .toolbar {
-    position: fixed;
+    position: absolute;
+    display: flex;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 10px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    padding: 6px;
-    z-index: 1000;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+    padding: 5px;
     user-select: none;
+    cursor: move;
   }
 
     .toolbar.vertical {
       flex-direction: column;
     }
 
-  .buttons-container {
-    display: flex;
-    gap: 6px;
-  }
-
-  .toolbar.vertical .buttons-container {
-    flex-direction: column;
-  }
-
-  .main-buttons {
-    display: flex;
-    gap: 6px;
-  }
-
-  .toolbar.vertical .main-buttons {
-    flex-direction: column;
-  }
-
   .button {
-    width: 32px;
-    height: 32px;
+    background: none;
     border: none;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: #ffffff;
+    color: white;
+    font-size: 1.2em;
+    padding: 10px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    transition: all 0.3s ease, transform 0.2s ease;
-    position: relative;
-    overflow: hidden;
-    user-select: none;
+    transition: background 0.3s ease;
   }
-
-    .button::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 300%;
-      height: 300%;
-      background: rgba(255, 255, 255, 0.2);
-      transition: all 0.5s ease;
-      transform: translate(-50%, -50%) scale(0);
-      border-radius: 50%;
-    }
-
-    .button:hover::before {
-      transform: translate(-50%, -50%) scale(1);
-    }
 
     .button:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: scale(1.05);
+      background: rgba(255, 255, 255, 0.2);
     }
 
-    .button.active {
-      background: rgba(99, 102, 241, 0.6);
-      border-color: rgba(99, 102, 241, 0.8);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
-    }
-
-  .expanded-section {
-    display: none;
-    gap: 6px;
-    margin-left: 6px;
-  }
-
-  .toolbar.expanded .expanded-section {
+  .buttons-container {
     display: flex;
   }
 
-  .toolbar.vertical .expanded-section {
-    flex-direction: column;
-    margin-left: 0;
-    margin-top: 6px;
+  .control-buttons {
+    display: flex;
   }
 
   .separator {
-    width: 2px;
-    height: 32px;
+    width: 1px;
     background: rgba(255, 255, 255, 0.2);
-    margin: 0 6px;
-    transition: all 0.3s ease;
+    margin: 0 5px;
   }
 
-  .toolbar.vertical .separator {
-    width: 32px;
-    height: 2px;
-    margin: 6px 0;
-  }
-
-  /* Edge indicators */
-  .edge-indicator {
+  .notifications {
     position: fixed;
-    pointer-events: none;
-    background: rgba(99, 102, 241, 0.4);
-    z-index: 999;
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    bottom: 20px;
+    right: 20px;
   }
 
-    .edge-indicator.active {
-      opacity: 1;
-      transform: scale(1.1);
-    }
-
-    .edge-indicator.top {
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 6px;
-      border-radius: 0 0 12px 12px;
-    }
-
-    .edge-indicator.left {
-      top: 0;
-      left: 0;
-      bottom: 0;
-      width: 6px;
-      border-radius: 0 12px 12px 0;
-    }
-
-    .edge-indicator.right {
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 6px;
-      border-radius: 12px 0 0 12px;
-    }
+  .notification {
+    margin-bottom: 10px;
+  }
 </style>

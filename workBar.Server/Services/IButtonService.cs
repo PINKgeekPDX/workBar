@@ -1,6 +1,10 @@
-﻿namespace workBar.Server.Services
+﻿using workBar.Server.Models;
+
+namespace workBar.Server.Services
 {
-    public class IButtonService
+    public interface IButtonService
     {
+        void LaunchApplication(AppLaunchConfig config);
+        void ExecuteScript(ScriptConfig config);
     }
 }

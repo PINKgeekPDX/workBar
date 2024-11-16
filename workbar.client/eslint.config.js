@@ -1,17 +1,17 @@
-import js from '@eslint/js'
-import pluginVue from 'eslint-plugin-vue'
+import { defineConfig } from 'eslint-define-config';
 
-export default [
-  {
-    name: 'app/files-to-lint',
-    files: ['**/*.{js,mjs,jsx,vue}'],
+export default defineConfig({
+  env: {
+    browser: true,
+    es2021: true,
   },
-
-  {
-    name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**'],
+  extends: ['plugin:vue/vue3-essential', 'eslint:recommended'],
+  parserOptions: {
+    ecmaVersion: 13,
+    sourceType: 'module',
   },
-
-  js.configs.recommended,
-  ...pluginVue.configs['flat/essential'],
-]
+  plugins: ['vue'],
+  rules: {
+    // Add your custom rules here
+  },
+});

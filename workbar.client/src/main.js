@@ -1,12 +1,10 @@
-import Vue from 'vue';
+import { createApp } from 'vue';
 import App from './App.vue';
-import router from './router';
-import store from './store';
+import pinia from './store';
+import { loadSavedTheme } from '@/services/theme';
 
-Vue.config.productionTip = false;
+loadSavedTheme();
 
-new Vue({
-  router,
-  store,
-  render: h => h(App),
-}).$mount('#app');
+const app = createApp(App);
+app.use(pinia);
+app.mount('#app');

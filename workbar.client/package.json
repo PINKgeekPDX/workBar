@@ -1,6 +1,6 @@
 {
   "name": "workbar.client",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,9 @@
     "lint": "eslint . --fix"
   },
   "dependencies": {
-    "vue": "^3.5.12"
+    "axios": "^1.4.0",
+    "vue": "^3.5.12",
+    "pinia": "^2.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
